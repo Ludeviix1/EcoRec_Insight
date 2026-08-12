@@ -5,4 +5,7 @@ scikit-learn>=1.4
 mlxtend>=0.23
 joblib>=1.3
 
+# Phase 4 ETL：MySQL 批量写入（与 backend 共用 PyMySQL）
+PyMySQL>=1.1
+
 # P1（可选）：LightGBM>=4.0  XGBoost>=2.0

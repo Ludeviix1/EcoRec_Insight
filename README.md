@@ -4,7 +4,7 @@
 
 项目目标：从一批原始数据出发，经过**数据生成 → 数据清洗 → ETL → 数据存储 → 数据质量 → 基础分析 → 深度业务分析 → 用户画像 → 用户分群 → 预测建模 → 推荐系统 → 推荐评估 → FastAPI → Vue3/ECharts → 测试 → 部署 → 项目文档**的完整数据闭环，最终形成真实可运行、可解释、可评估、可展示的数据应用。
 
-> 完整开发规格见 `开发文档2.1.md`。
+> 完整开发规格以最新版开发文档为准，见 `开发文档2.2.md`。
 
 ## 核心原则
 
@@ -35,11 +35,12 @@ models/     训练产物（joblib 模型 + metadata）
 |---|---|---|
 | 0 | 需求和架构、仓库/目录、README | ✅ 完成 |
 | 1 | Python + FastAPI 初始化：config / logging / database / health API | ✅ 完成 |
-| 2 | MySQL 建表（6张核心表 + 主键/唯一键/外键逻辑/索引） | ✅ 完成 |
+| 2 | MySQL 建表（12 张表 + 主键/唯一键/外键逻辑/索引） | ✅ 完成 |
 | 3 | 数据生成器（含业务规律模拟） | ✅ 完成 |
-| 4+ | 详见 `开发文档2.1.md` 第 49 节 Phase 规划 | 待开发 |
+| 4 | 数据质量 + ETL（清洗/质检/报告/Processed/MySQL 批量入库，可重复执行） | ✅ 完成 |
+| 5+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
 
-## 快速开始（当前阶段）
+## 快速开始（current 阶段）
 
 ``` bash
 # 1. 创建虚拟环境（Windows）
@@ -48,25 +49,39 @@ python -m venv .venv
 
 # 2. 安装依赖
 pip install -r backend/requirements.txt
+pip install -r analysis/requirements.txt
 
 # 3. 配置环境变量
 copy backend\.env.example backend\.env
 
-# 4. 生成模拟数据
+# 4. 初始化数据库（建库建表 + 索引；--reset 可删库重建）
+python scripts/init_db.py
+
+# 5. 生成模拟数据
 python scripts/generate_data.py                    # 默认 low 规模 (2K 用户)
 python scripts/generate_data.py --scale standard   # 标准规模 (10K 用户)
 
-# 5. 启动后端
+# 6. ETL：清洗 -> 质检报告 -> Processed CSV -> MySQL（refresh 自动清空重载，幂等）
+python scripts/run_etl.py                          # 默认写 MySQL
+python scripts/run_etl.py --skip-mysql             # 只产出清洗数据 + 质检报告
+
+#   产物
+#   data/processed/            6 张清洗后 CSV（Phase 5+ 分析消费）
+#   data/interim/data_quality_report.json   数据质量报告
+#   data/interim/etl_meta.json              ETL 运行记录（dataset_version 等）
+
+# 7. 启动后端
 uvicorn backend.app.main:app --reload
 
-# 6. 验证
+# 8. 验证
 curl http://127.0.0.1:8000/api/health
 # 预期: {"code":0,"message":"success","data":{"status":"ok"}}
 # 交互式文档: http://127.0.0.1:8000/docs
 
-# 7. 运行测试
-python -m pytest backend/tests -v               # 后端测试
-python -m pytest tests/test_data_generation.py -v  # 数据生成测试
+# 9. 运行测试
+python -m pytest backend/tests -v                     # 后端测试
+python -m pytest tests/test_data_generation.py -v     # Phase 3 数据生成测试
+python -m pytest tests/test_phase4_quality_etl.py -v  # Phase 4 数据质量 + ETL 测试
 ```
 
 ## 技术栈

@@ -182,7 +182,7 @@ CREATE TABLE IF NOT EXISTS recommendation_results (
   strategy   VARCHAR(32)   NOT NULL                COMMENT '推荐策略：popular/item_cf/user_cf/content/hybrid',
   item_id    VARCHAR(32)   NOT NULL                COMMENT '推荐商品ID',
   score      DECIMAL(10,6) NOT NULL DEFAULT 0      COMMENT '推荐分数',
-  rank       INT           NOT NULL                COMMENT '排名（1=最推荐）',
+  reco_rank  INT           NOT NULL                COMMENT '推荐排名（1=最推荐）',
   reason     VARCHAR(255)  NULL                    COMMENT '推荐解释',
   created_at DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '生成时间',
   PRIMARY KEY (id)

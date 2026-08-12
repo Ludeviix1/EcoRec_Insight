@@ -35,7 +35,9 @@ models/     训练产物（joblib 模型 + metadata）
 |---|---|---|
 | 0 | 需求和架构、仓库/目录、README | ✅ 完成 |
 | 1 | Python + FastAPI 初始化：config / logging / database / health API | ✅ 完成 |
-| 2+ | 详见 `开发文档2.1.md` 第 49 节 Phase 规划 | 待开发 |
+| 2 | MySQL 建表（6张核心表 + 主键/唯一键/外键逻辑/索引） | ✅ 完成 |
+| 3 | 数据生成器（含业务规律模拟） | ✅ 完成 |
+| 4+ | 详见 `开发文档2.1.md` 第 49 节 Phase 规划 | 待开发 |
 
 ## 快速开始（当前阶段）
 
@@ -50,16 +52,21 @@ pip install -r backend/requirements.txt
 # 3. 配置环境变量
 copy backend\.env.example backend\.env
 
-# 4. 启动后端
+# 4. 生成模拟数据
+python scripts/generate_data.py                    # 默认 low 规模 (2K 用户)
+python scripts/generate_data.py --scale standard   # 标准规模 (10K 用户)
+
+# 5. 启动后端
 uvicorn backend.app.main:app --reload
 
-# 5. 验证
+# 6. 验证
 curl http://127.0.0.1:8000/api/health
 # 预期: {"code":0,"message":"success","data":{"status":"ok"}}
 # 交互式文档: http://127.0.0.1:8000/docs
 
-# 6. 运行测试
-python -m pytest backend/tests -v
+# 7. 运行测试
+python -m pytest backend/tests -v               # 后端测试
+python -m pytest tests/test_data_generation.py -v  # 数据生成测试
 ```
 
 ## 技术栈

@@ -1,4 +1,4 @@
-"""Phase 5 基础分析配置。
+"""Phase 5/6 分析配置。
 
 只读取 processed CSV，不需要 MySQL。目录默认指向项目 data/ 分层，
 支持环境变量 / CLI 覆盖（与 ``analysis.etl.config`` 风格一致）。
@@ -13,7 +13,7 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 # 分析版本（开发文档第 E 节 / 第 47 节：可复现性）
-ANALYSIS_VERSION = "1.0"
+ANALYSIS_VERSION = "2.0"
 
 
 @dataclass(frozen=True)

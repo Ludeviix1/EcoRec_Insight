@@ -1,9 +1,11 @@
-"""Phase 5 基础分析全量入口。
+"""Phase 5/6 分析全量入口。
 
 读取 data/processed 六张清洗 CSV，依次计算：
-用户规模 / DAU·WAU·MAU / 行为分析 / 活跃时间 / GMV / 商品排行 / 分类排行 /
-品牌排行 / 漏斗，并把每个结果写成 data/analysis/<name>.json（结构化数据，
-供后续 FastAPI 直接复用，开发文档第 49.3 节）。
+Phase 5：用户规模 / DAU·WAU·MAU / 行为分析 / 活跃时间 / GMV / 商品排行 /
+分类排行 / 品牌排行 / 漏斗；
+Phase 6：留存 / Cohort / RFM。
+每个结果写成 data/analysis/<name>.json（结构化数据，
+供后续 FastAPI 直接复用，开发文档第 49.3/49.4 节）。
 """
 
 from __future__ import annotations
@@ -14,17 +16,20 @@ import logging
 import time
 
 from .base import load_processed, write_json
+from .cohort import cohort_analysis
 from .config import AnalysisConfig, load_analysis_config
 from .funnel import conversion_funnel
 from .gmv import gmv_analysis
 from .item import brand_ranking, category_ranking, item_ranking
+from .retention import retention_analysis
+from .rfm import rfm_analysis
 from .user import active_time, behavior_analysis, dau_wau_mau, user_scale
 
 logger = logging.getLogger("analysis.base")
 
 
 def run_analysis(cfg: AnalysisConfig | None = None, *, log: bool = True) -> dict:
-    """执行全部基础分析，返回结果 dict（同时已落盘 JSON）。"""
+    """执行全部分析，返回结果 dict（同时已落盘 JSON）。"""
     cfg = cfg or load_analysis_config()
     if log:
         logging.basicConfig(
@@ -56,6 +61,9 @@ def run_analysis(cfg: AnalysisConfig | None = None, *, log: bool = True) -> dict
         "category_ranking": category_ranking(items, behaviors, order_items, orders, top_n=top_n),
         "brand_ranking": brand_ranking(items, behaviors, order_items, orders, top_n=top_n),
         "funnel": conversion_funnel(behaviors),
+        "retention": retention_analysis(behaviors),
+        "cohort": cohort_analysis(behaviors),
+        "rfm": rfm_analysis(orders),
     }
 
     for name, data in results.items():
@@ -81,6 +89,10 @@ def run_analysis(cfg: AnalysisConfig | None = None, *, log: bool = True) -> dict
 def _size_hint(data: dict) -> str:
     if isinstance(data, dict) and "items" in data:
         return str(data.get("total", len(data["items"])))
+    if isinstance(data, dict) and "cohorts" in data:
+        return str(data.get("total_cohorts", len(data["cohorts"])))
+    if isinstance(data, dict) and "users" in data:
+        return str(data.get("total_buying_users", len(data["users"])))
     return str(len(data)) if isinstance(data, list) else "-"
 
 
@@ -97,7 +109,7 @@ def _dataset_version(cfg: AnalysisConfig) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Phase 5 基础分析: 用户规模/DAU·WAU·MAU/行为/活跃时间/GMV/排行/漏斗",
+        description="分析入口: 用户/DAU/GMV/排行/漏斗/留存/Cohort/RFM",
     )
     parser.add_argument("--processed-dir", type=str, default=None, help="清洗数据目录（默认 data/processed）")
     parser.add_argument("--interim-dir", type=str, default=None, help="中间产物目录（默认 data/interim）")

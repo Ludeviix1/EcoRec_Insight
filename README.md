@@ -39,7 +39,8 @@ models/     训练产物（joblib 模型 + metadata）
 | 3 | 数据生成器（含业务规律模拟） | ✅ 完成 |
 | 4 | 数据质量 + ETL（清洗/质检/报告/Processed/MySQL 批量入库，可重复执行） | ✅ 完成 |
 | 5 | 基础分析（用户规模 / DAU·WAU·MAU / 行为 / 活跃时间 / GMV / 商品·分类·品牌排行 / 漏斗） | ✅ 完成 |
-| 6+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
+| 6 | 留存 + Cohort + RFM（留存口径 / cohort 起点 / RFM 规则可配置 / 分群可解释） | ✅ 完成 |
+| 7+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
 
 ## 快速开始（current 阶段）
 
@@ -71,7 +72,7 @@ python scripts/run_etl.py --skip-mysql             # 只产出清洗数据 + 质
 #   data/interim/data_quality_report.json   数据质量报告
 #   data/interim/etl_meta.json              ETL 运行记录（dataset_version 等）
 
-# 7. 基础分析：读取 processed，输出结构化 JSON 到 data/analysis
+# 7. 分析：读取 processed，输出结构化 JSON 到 data/analysis（Phase 5 基础分析 + Phase 6 留存/Cohort/RFM）
 python scripts/run_analysis.py
 python scripts/run_analysis.py --top-n 20     # 排行 TOP N 可调
 
@@ -85,6 +86,9 @@ python scripts/run_analysis.py --top-n 20     # 排行 TOP N 可调
 #   data/analysis/category_ranking.json      分类排行
 #   data/analysis/brand_ranking.json         品牌排行
 #   data/analysis/funnel.json                转化漏斗
+#   data/analysis/retention.json             留存（次日/3/7/14/30 日）
+#   data/analysis/cohort.json                Cohort 留存矩阵（热力图）
+#   data/analysis/rfm.json                   RFM 用户价值分群
 #   data/analysis/analysis_meta.json         运行记录
 
 # 8. 启动后端
@@ -100,6 +104,7 @@ python -m pytest backend/tests -v                     # 后端测试
 python -m pytest tests/test_data_generation.py -v     # Phase 3 数据生成测试
 python -m pytest tests/test_phase4_quality_etl.py -v  # Phase 4 数据质量 + ETL 测试
 python -m pytest tests/test_phase5_analysis.py -v     # Phase 5 基础分析测试
+python -m pytest tests/test_phase6_analysis.py -v     # Phase 6 留存/Cohort/RFM 测试
 ```
 
 ## 技术栈

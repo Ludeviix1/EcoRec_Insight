@@ -295,6 +295,7 @@ def test_run_analysis_produces_all_outputs(analysis_dir):
     expected = {
         "user_scale", "dau_wau_mau", "behavior", "active_time", "gmv",
         "item_ranking", "category_ranking", "brand_ranking", "funnel",
+        "retention", "cohort", "rfm",
         "analysis_meta",
     }
     files = {p.stem for p in analysis_dir.glob("*.json")}
@@ -304,6 +305,7 @@ def test_run_analysis_produces_all_outputs(analysis_dir):
     assert meta["results"] == [
         "user_scale", "dau_wau_mau", "behavior", "active_time", "gmv",
         "item_ranking", "category_ranking", "brand_ranking", "funnel",
+        "retention", "cohort", "rfm",
     ]
 
     # 抽查结构：funnel 5 阶段

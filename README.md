@@ -41,7 +41,8 @@ models/     训练产物（joblib 模型 + metadata）
 | 5 | 基础分析（用户规模 / DAU·WAU·MAU / 行为 / 活跃时间 / GMV / 商品·分类·品牌排行 / 漏斗） | ✅ 完成 |
 | 6 | 留存 + Cohort + RFM（留存口径 / cohort 起点 / RFM 规则可配置 / 分群可解释） | ✅ 完成 |
 | 7 | 深度业务分析（生命周期 / 购买路径 / 商品生命周期 / 价格 / 渠道 / 设备 / 关联规则 / 用户分群 / 用户画像 / 商品画像 / 业务发现） | ✅ 完成 |
-| 8+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
+| 8 | 特征工程（Observation Window 过去30天：用户 / 商品 / 用户-商品交互特征 + 数据字典 + feature_version / feature_time_range，防泄漏） | ✅ 完成 |
+| 9+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
 
 ## 快速开始（current 阶段）
 
@@ -103,21 +104,34 @@ python scripts/run_analysis.py --top-n 20     # 排行 TOP N 可调
 #   data/analysis/findings.json              业务发现（现象→证据→原因→建议，注明模拟数据）
 #   data/analysis/analysis_meta.json         运行记录（analysis_version 3.0）
 
-# 8. 启动后端
+# 8. 特征工程：读取 processed，输出用户/商品/用户-商品交互特征（Phase 8，Observation Window 过去30天）
+python scripts/run_features.py
+python scripts/run_features.py --observation-days 30     # 观察窗口可调
+python scripts/run_features.py --obs-end 2026-08-31      # 窗口结束日可调
+
+#   产物（供 Phase 9 购买预测 / Phase 12 内容推荐 / 召回直接复用）
+#   data/features/user_features.csv           用户级特征（1 行/用户）
+#   data/features/item_features.csv           商品级特征（1 行/商品）
+#   data/features/user_item_features.csv      用户-商品交互特征（仅窗口内有行为的对）
+#   data/features/feature_dictionary.json     特征数据字典
+#   data/features/feature_meta.json           运行记录（feature_version / feature_time_range / 防泄漏声明）
+
+# 9. 启动后端
 uvicorn backend.app.main:app --reload
 
-# 9. 验证
+# 10. 验证
 curl http://127.0.0.1:8000/api/health
 # 预期: {"code":0,"message":"success","data":{"status":"ok"}}
 # 交互式文档: http://127.0.0.1:8000/docs
 
-# 10. 运行测试
+# 11. 运行测试
 python -m pytest backend/tests -v                     # 后端测试
 python -m pytest tests/test_data_generation.py -v     # Phase 3 数据生成测试
 python -m pytest tests/test_phase4_quality_etl.py -v  # Phase 4 数据质量 + ETL 测试
 python -m pytest tests/test_phase5_analysis.py -v     # Phase 5 基础分析测试
 python -m pytest tests/test_phase6_analysis.py -v     # Phase 6 留存/Cohort/RFM 测试
 python -m pytest tests/test_phase7_analysis.py -v     # Phase 7 深度业务分析测试
+python -m pytest tests/test_phase8_features.py -v     # Phase 8 特征工程测试
 ```
 
 ## 技术栈

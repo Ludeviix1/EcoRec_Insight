@@ -44,7 +44,8 @@ models/     训练产物（joblib 模型 + metadata）
 | 8 | 特征工程（Observation Window 过去30天：用户 / 商品 / 用户-商品交互特征 + 数据字典 + feature_version / feature_time_range，防泄漏） | ✅ 完成 |
 | 9 | 购买预测（滚动快照：过去30天特征 -> 未来7天是否购买；LR + RF；Precision/Recall/F1/ROC-AUC/PR-AUC/混淆矩阵；时间切分防泄漏；模型+metadata+特征重要性） | ✅ 完成 |
 | 10 | 流失预测（观察窗口活跃用户 + 未来30天无关键行为/购买 => 流失；LR + RF；输出 user_id/churn_probability/risk_level；时间切分防泄漏；文档化观察窗口/预测窗口/流失定义） | ✅ 完成 |
-| 11+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
+| 11 | Popular Baseline 推荐（PV/Click/Collect/Cart/Buy 加权 + 时间衰减 + 标准化 + 权重可配置；过滤已购买/下架/重复；冷启动支持；统一 recommend 接口） | ✅ 完成 |
+| 12+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
 
 ## 快速开始（current 阶段）
 
@@ -145,15 +146,27 @@ python scripts/run_churn.py --risk-high-threshold 0.7  # 风险等级阈值可�
 #   data/churn/churn_predictions.csv        预测输出（user_id / churn_probability / risk_level）
 #   data/churn/churn_meta.json              运行记录（观察窗口 / 预测窗口 / 流失定义 / 风险等级）
 
-# 11. 启动后端
+# 11. Popular Baseline 推荐：行为加权 + 时间衰减（Phase 11）
+python scripts/run_recommendation.py
+python scripts/run_recommendation.py --half-life-days 3      # 时间衰减可调
+python scripts/run_recommendation.py --behavior-weights pv:1,click:2,collect:3,cart:4,buy:5  # 权重可配置
+python scripts/run_recommendation.py --top-k 10              # 每用户推荐条数
+
+#   产物
+#   data/recommendation/popular_model.joblib        模型（供 FastAPI 加载）
+#   data/recommendation/popular_items.csv           全量商品热度分
+#   data/recommendation/popular_recommendations.csv 全体活跃用户 Top-K
+#   data/recommendation/recommendation_meta.json    运行记录（公式/衰减/过滤/冷启动）
+
+# 12. 启动后端
 uvicorn backend.app.main:app --reload
 
-# 12. 验证
+# 13. 验证
 curl http://127.0.0.1:8000/api/health
 # 预期: {"code":0,"message":"success","data":{"status":"ok"}}
 # 交互式文档: http://127.0.0.1:8000/docs
 
-# 13. 运行测试
+# 14. 运行测试
 python -m pytest backend/tests -v                     # 后端测试
 python -m pytest tests/test_data_generation.py -v     # Phase 3 数据生成测试
 python -m pytest tests/test_phase4_quality_etl.py -v  # Phase 4 数据质量 + ETL 测试
@@ -163,6 +176,7 @@ python -m pytest tests/test_phase7_analysis.py -v     # Phase 7 深度业务分�
 python -m pytest tests/test_phase8_features.py -v     # Phase 8 特征工程测试
 python -m pytest tests/test_phase9_prediction.py -v   # Phase 9 购买预测测试
 python -m pytest tests/test_phase10_churn.py -v       # Phase 10 流失预测测试
+python -m pytest tests/test_phase11_popular.py -v     # Phase 11 Popular 推荐测试
 ```
 
 ## 技术栈

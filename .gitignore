@@ -20,6 +20,7 @@ data/processed/*
 data/features/*
 data/analysis/*
 data/prediction/*
+data/churn/*
 !data/**/.gitkeep
 
 # 模型产物

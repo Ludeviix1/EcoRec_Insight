@@ -43,7 +43,8 @@ models/     训练产物（joblib 模型 + metadata）
 | 7 | 深度业务分析（生命周期 / 购买路径 / 商品生命周期 / 价格 / 渠道 / 设备 / 关联规则 / 用户分群 / 用户画像 / 商品画像 / 业务发现） | ✅ 完成 |
 | 8 | 特征工程（Observation Window 过去30天：用户 / 商品 / 用户-商品交互特征 + 数据字典 + feature_version / feature_time_range，防泄漏） | ✅ 完成 |
 | 9 | 购买预测（滚动快照：过去30天特征 -> 未来7天是否购买；LR + RF；Precision/Recall/F1/ROC-AUC/PR-AUC/混淆矩阵；时间切分防泄漏；模型+metadata+特征重要性） | ✅ 完成 |
-| 10+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
+| 10 | 流失预测（观察窗口活跃用户 + 未来30天无关键行为/购买 => 流失；LR + RF；输出 user_id/churn_probability/risk_level；时间切分防泄漏；文档化观察窗口/预测窗口/流失定义） | ✅ 完成 |
+| 11+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
 
 ## 快速开始（current 阶段）
 
@@ -130,15 +131,29 @@ python scripts/run_prediction.py --rf-n-estimators 300  # 模型参数可调
 #   data/prediction/feature_importance.json      特征重要性 / 系数解释
 #   data/prediction/prediction_meta.json         运行记录（时间窗 / 时间切分 / 防泄漏）
 
-# 10. 启动后端
+# 10. 流失预测：观察窗口活跃用户 -> 未来30天是否流失（Phase 10）
+python scripts/run_churn.py
+python scripts/run_churn.py --label-days 30          # 预测窗口可调
+python scripts/run_churn.py --risk-high-threshold 0.7  # 风险等级阈值可调
+
+#   产物
+#   data/churn/churn_dataset.csv         滚动快照流失样本集（特征 + churn label）
+#   data/churn/model_logistic_regression.pkl  Logistic Regression 模型
+#   data/churn/model_random_forest.pkl      Random Forest 模型
+#   data/churn/metrics.json                 评估指标（PR-AUC / ROC-AUC / 混淆矩阵）
+#   data/churn/feature_importance.json      特征重要性 / 系数解释
+#   data/churn/churn_predictions.csv        预测输出（user_id / churn_probability / risk_level）
+#   data/churn/churn_meta.json              运行记录（观察窗口 / 预测窗口 / 流失定义 / 风险等级）
+
+# 11. 启动后端
 uvicorn backend.app.main:app --reload
 
-# 11. 验证
+# 12. 验证
 curl http://127.0.0.1:8000/api/health
 # 预期: {"code":0,"message":"success","data":{"status":"ok"}}
 # 交互式文档: http://127.0.0.1:8000/docs
 
-# 12. 运行测试
+# 13. 运行测试
 python -m pytest backend/tests -v                     # 后端测试
 python -m pytest tests/test_data_generation.py -v     # Phase 3 数据生成测试
 python -m pytest tests/test_phase4_quality_etl.py -v  # Phase 4 数据质量 + ETL 测试
@@ -147,6 +162,7 @@ python -m pytest tests/test_phase6_analysis.py -v     # Phase 6 留存/Cohort/RF
 python -m pytest tests/test_phase7_analysis.py -v     # Phase 7 深度业务分析测试
 python -m pytest tests/test_phase8_features.py -v     # Phase 8 特征工程测试
 python -m pytest tests/test_phase9_prediction.py -v   # Phase 9 购买预测测试
+python -m pytest tests/test_phase10_churn.py -v       # Phase 10 流失预测测试
 ```
 
 ## 技术栈

@@ -8,7 +8,8 @@
 | `interim/` | 中间数据（Phase 4 产物） | 数据质量报告 `data_quality_report.json`、ETL 运行记录 `etl_meta.json` |
 | `processed/` | 加工数据（Phase 4 产物） | 清洗去重后的最终数据集（6 张 CSV），供 MySQL 入库与 Phase 5+ 全量分析使用 |
 | `analysis/` | 分析结果（Phase 5/6/7 产物） | 结构化 JSON（用户规模 / DAU·WAU·MAU / 行为 / 活跃时间 / GMV / 商品·分类·品牌排行 / 漏斗 / 留存 / Cohort / RFM / 生命周期 / 购买路径 / 商品生命周期 / 价格 / 渠道 / 设备 / 关联规则 / 用户分群 / 用户画像 / 商品画像 / 业务发现），供 FastAPI 直接复用 |
-| `features/` | 特征数据 | 特征工程产出的 user / item / user-item / context 特征表（CSV/Parquet） |
+| `prediction/` | 购买预测模型 | LR/RF 模型 + 快照样本集 + 评估指标 + 特征重要性 + 运行记录（Phase 9） |
+| `churn/` | 流失预测模型 | LR/RF 模型 + 流失样本集 + 评估指标 + 特征重要性 + churn_predictions.csv（user_id/churn_probability/risk_level）+ 运行记录（Phase 10） |
 
 约定：
 
@@ -21,3 +22,4 @@
 - 深度业务分析（Phase 7）：随 `run_analysis.py` 一并产出（`lifecycle.json` / `purchase_path.json` / `item_lifecycle.json` / `price.json` / `channel.json` / `device.json` / `association.json` / `user_segments.json` / `user_profile.json` / `item_profile.json` / `findings.json`）。要点：生命周期规则可配置（`LifecycleConfig`）；购买路径按会话切分且不伪造 search；关联规则分商品级与分类级（数据商品级稀疏）；用户分群为 KMeans（`user_segmentation`，可配置 n_clusters）；业务发现统一为"现象→证据→可能原因→业务建议"并注明数据为模拟数据。
 - 特征工程（Phase 8）：`python scripts/run_features.py` 读取 `processed/`，输出到 `features/`（`user_features.csv` / `item_features.csv` / `user_item_features.csv` / `feature_dictionary.json` / `feature_meta.json`）。要点：特征只使用 Observation Window（默认过去 30 天，可配置 `FEAT_OBS_DAYS` / `FEAT_OBS_END`，窗口结束日含端点）内的行为/订单聚合，不读取未来标签；`feature_meta.json` 记录 `feature_version` / `feature_time_range` / dataset 血缘；每个字段都在 `feature_dictionary.json` 数据字典中有说明，保证可复现。
 - 购买预测（Phase 9）：`python scripts/run_prediction.py` 读取 `processed/`，输出到 `prediction/`（`snapshot_dataset.csv` / `model_logistic_regression.pkl` / `model_random_forest.pkl` / `metrics.json` / `feature_importance.json` / `prediction_meta.json`）。要点：按 `snapshot_step` 天（默认 7，可配置 `PRED_SNAPSHOT_STEP`）在数据时间轴上滚动生成快照样本，每行=1 用户×1 快照：特征只用观察窗口 `[obs_end-29, obs_end]` 内数据，标签=预测窗口 `(obs_end, obs_end+7]` 内是否有 paid 订单（`PRED_OBS_DAYS` / `PRED_LABEL_DAYS` 可配）；train/val/test 按 `obs_end` 时间先后切分（非随机，杜绝泄漏）；类别不平衡不以 Accuracy 为准，输出 Precision/Recall/F1/ROC-AUC/PR-AUC/混淆矩阵与 `positive_rate`；模型 LR（标准化+类别平衡）+ RF（类别平衡），`prediction_meta.json` 记录模型/时间窗/切分/血缘。
+- 流失预测（Phase 10）：`python scripts/run_churn.py` 读取 `processed/`，输出到 `churn/`（`churn_dataset.csv` / `model_logistic_regression.pkl` / `model_random_forest.pkl` / `metrics.json` / `feature_importance.json` / `churn_predictions.csv` / `churn_meta.json`）。要点：与购买预测同构但标签不同——只保留观察窗口 `[obs_end-29, obs_end]` 内活跃（≥1 条行为）的用户为候选人群；流失定义=预测窗口 `(obs_end, obs_end+30]` 内无关键行为（默认 buy/collect/cart，可配置 `CHURN_KEY_BEHAVIORS`）且无 paid 订单，否则未流失（`CHURN_OBS_DAYS` / `CHURN_LABEL_DAYS` 可配，默认 30/30）；输出 `user_id / churn_probability / risk_level`（low/medium/high，阈值 `CHURN_RISK_LOW` / `CHURN_RISK_HIGH` 默认 0.3/0.7）；`churn_meta.json` 必须记录并说明观察窗口 / 预测窗口 / 流失定义；评估口径与 Phase 9 一致（时间切分防泄漏 + PR-AUC/ROC-AUC/混淆矩阵）。

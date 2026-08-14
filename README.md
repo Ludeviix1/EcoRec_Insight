@@ -49,7 +49,8 @@ models/     训练产物（joblib 模型 + metadata）
 | 13 | Content-Based 推荐（category/brand/price_range/item tags 构造商品向量 + 余弦相似度；用户历史商品→相似商品→分数累加→过滤→Top-K；已购买/下架过滤；冷启动商品与新用户兜底） | ✅ 完成 |
 | 14 | Hybrid 推荐（ItemCF + UserCF + Popular + Content 四路召回归一化到 [0,1] 后加权融合，权重可配置；baseline vs hybrid 离线对比并依据评估指标给结论） | ✅ 完成 |
 | 15 | 推荐评估（严格时间切分：历史→train，未来→test，推荐只用 train；对比 Popular/ItemCF/UserCF/Content/Hybrid 五算法，输出 Precision@10/Recall@10/F1@10/HitRate@10/NDCG@10/Coverage；结论必须基于评估指标，Hybrid 未优于 Popular 时禁止强行声称更好） | ✅ 完成 |
-| 16+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
+| 16 | FastAPI 全量接口（Router→Service→Repository→Database/Model 分层；Dashboard/Users/Items/Analysis/Models/Recommendations 30+ 接口；离线产物直接复用，推荐模型只加载不重训，itemcf/usercf 进程内一次性构建并缓存） | ✅ 完成 |
+| 17+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
 
 ## 快速开始（current 阶段）
 
@@ -209,7 +210,8 @@ curl http://127.0.0.1:8000/api/health
 # 交互式文档: http://127.0.0.1:8000/docs
 
 # 18. 运行测试
-python -m pytest backend/tests -v                     # 后端测试
+python -m pytest backend/tests -v                     # 后端测试（health + Phase 16 API）
+python -m pytest backend/tests/test_phase16_api.py -v # Phase 16 FastAPI 全量接口测试
 python -m pytest tests/test_data_generation.py -v     # Phase 3 数据生成测试
 python -m pytest tests/test_phase4_quality_etl.py -v  # Phase 4 数据质量 + ETL 测试
 python -m pytest tests/test_phase5_analysis.py -v     # Phase 5 基础分析测试

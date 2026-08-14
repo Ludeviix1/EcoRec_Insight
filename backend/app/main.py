@@ -16,7 +16,7 @@ from .core.config import get_settings
 from .core.exceptions import AppError
 from .core.logging import get_logger, setup_logging
 from .middleware.request_log import RequestLogMiddleware
-from .routers import health
+from .routers import analysis, dashboard, health, items, models, recommendations, users
 
 setup_logging()
 logger = get_logger("app")
@@ -39,6 +39,12 @@ app = FastAPI(
 
 app.add_middleware(RequestLogMiddleware)
 app.include_router(health.router, prefix="/api")
+app.include_router(dashboard.router, prefix="/api/dashboard")
+app.include_router(users.router, prefix="/api/users")
+app.include_router(items.router, prefix="/api/items")
+app.include_router(analysis.router, prefix="/api/analysis")
+app.include_router(models.router, prefix="/api/models")
+app.include_router(recommendations.router, prefix="/api/recommendations")
 
 
 @app.exception_handler(AppError)

@@ -22,6 +22,7 @@ import pandas as pd
 from analysis.feature_engineering.base import load_processed
 
 from .config import RecommendConfig, load_recommend_config
+from .content import ContentRecommender
 from .popular import PopularRecommender
 
 logger = logging.getLogger("analysis.recommendation")
@@ -131,6 +132,80 @@ def build_popular(cfg: RecommendConfig | None = None, *, log: bool = True) -> di
     cfg.meta_path.parent.mkdir(parents=True, exist_ok=True)
     cfg.meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     logger.info("Popular 构建完成 in %ss | 输出: %s", meta["elapsed_seconds"], cfg.output_dir)
+    return meta
+
+
+def build_content(cfg: RecommendConfig | None = None, *, log: bool = True) -> dict:
+    """训练并保存 Content-Based 模型与推荐结果，返回运行记录 dict。"""
+    cfg = cfg or load_recommend_config()
+    if log:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+
+    t0 = time.perf_counter()
+    cfg.output_dir.mkdir(parents=True, exist_ok=True)
+
+    items = load_processed(cfg.processed_dir, "items")
+    behaviors = load_processed(cfg.processed_dir, "user_behaviors")
+    orders = load_processed(cfg.processed_dir, "orders")
+    order_items = load_processed(cfg.processed_dir, "order_items")
+    logger.info("加载 processed 完成 | items=%d behaviors=%d",
+                len(items), len(behaviors))
+
+    model = ContentRecommender(cfg).fit(behaviors, items, orders, order_items)
+    joblib.dump(model, cfg.content_model_path)
+    logger.info("模型保存 %s", cfg.content_model_path.name)
+
+    active_users = behaviors["user_id"].astype(str).unique()
+    recs = []
+    for uid in active_users:
+        for r in model.recommend(uid, top_k=cfg.top_k):
+            recs.append({"user_id": uid, **r})
+    recs_df = pd.DataFrame(recs)
+    recs_path = cfg.output_dir / "content_recommendations.csv"
+    recs_df.to_csv(recs_path, index=False, encoding="utf-8-sig")
+    logger.info("推荐结果写入 %s (%d 行)", recs_path.name, len(recs_df))
+
+    meta = {
+        "recommend_version": cfg.recommend_version,
+        "dataset_version": _dataset_version(cfg),
+        "algorithm": "content",
+        "task": "content_based",
+        "features": ["category(one-hot)", "brand(one-hot)", "price_range(qcut 分箱)",
+                     "item tags(item_name TF-IDF, 去品牌 token)"],
+        "similarity": "cosine similarity",
+        "flow": "用户历史商品(种子，行为权重×时间衰减) → 内容相似商品 → 分数累加 → 过滤 → Top-K",
+        "filtering": {
+            "purchased": cfg.filter_purchased,
+            "off_shelf": cfg.filter_off_shelf,
+            "dedup": True,
+        },
+        "cold_start": "新用户→全局热门兜底；新商品→内容特征天然可召回（不需行为），与开发文档 35.6 一致",
+        "config": {
+            "behavior_weights": cfg.behavior_weights,
+            "half_life_days": cfg.half_life_days,
+            "n_price_bins": cfg.n_price_bins,
+            "sim_top": cfg.sim_top,
+            "top_k": cfg.top_k,
+        },
+        "stats": {
+            "n_items_embedded": int(len(model._item_index)) if model._item_index is not None else 0,
+            "n_users_recommended": int(len(recs_df["user_id"].unique())) if len(recs_df) else 0,
+            "n_recommendations": int(len(recs_df)),
+            "ref_date": str(model.ref_date.date()) if getattr(model, "ref_date", None) is not None else None,
+        },
+        "run_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "elapsed_seconds": round(time.perf_counter() - t0, 2),
+        "model": str(cfg.content_model_path),
+        "recommendations": str(recs_path),
+    }
+    cfg.meta_path.parent.mkdir(parents=True, exist_ok=True)
+    (cfg.output_dir / "content_meta.json").write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    logger.info("Content 构建完成 in %ss | 输出: %s", meta["elapsed_seconds"], cfg.output_dir)
     return meta
 
 

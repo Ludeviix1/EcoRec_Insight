@@ -46,7 +46,8 @@ models/     训练产物（joblib 模型 + metadata）
 | 10 | 流失预测（观察窗口活跃用户 + 未来30天无关键行为/购买 => 流失；LR + RF；输出 user_id/churn_probability/risk_level；时间切分防泄漏；文档化观察窗口/预测窗口/流失定义） | ✅ 完成 |
 | 11 | Popular Baseline 推荐（PV/Click/Collect/Cart/Buy 加权 + 时间衰减 + 标准化 + 权重可配置；过滤已购买/下架/重复；冷启动支持；统一 recommend 接口） | ✅ 完成 |
 | 12 | 权重实验（实验A 1/2/3/4/5、实验B 1/2/4/6/8、实验C 1/2/3/5/10；严格时间切分 train/test；Precision@10/Recall@10/F1@10/HitRate@10/NDCG@10/Coverage；最优权重依据离线实验而非主观判断） | ✅ 完成 |
-| 13+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
+| 13 | Content-Based 推荐（category/brand/price_range/item tags 构造商品向量 + 余弦相似度；用户历史商品→相似商品→分数累加→过滤→Top-K；已购买/下架过滤；冷启动商品与新用户兜底） | ✅ 完成 |
+| 14+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
 
 ## 快速开始（current 阶段）
 
@@ -167,15 +168,25 @@ python scripts/run_weight_experiment.py --k 10 --test-ratio 0.25 --max-users 300
 #   data/recommendation/weight_experiment.csv        三组权重 @K 指标对比表
 #   data/recommendation/weight_experiment.json       明细 + 最优权重结论（依据离线实验）
 
-# 13. 启动后端
+# 13. Content-Based 推荐（Phase 13）：分类/品牌/价格档/标签 余弦相似度
+python scripts/run_content.py
+python scripts/run_content.py --price-bins 5        # 价格分箱数
+python scripts/run_content.py --top-k 10 --sim-top 30   # Top-K 与每种子相似商品数
+
+#   产物
+#   data/recommendation/content_model.joblib            模型（供 FastAPI 加载）
+#   data/recommendation/content_recommendations.csv     全体活跃用户 Top-K
+#   data/recommendation/content_meta.json               运行记录（特征/相似度/过滤/冷启动）
+
+# 14. 启动后端
 uvicorn backend.app.main:app --reload
 
-# 14. 验证
+# 15. 验证
 curl http://127.0.0.1:8000/api/health
 # 预期: {"code":0,"message":"success","data":{"status":"ok"}}
 # 交互式文档: http://127.0.0.1:8000/docs
 
-# 15. 运行测试
+# 16. 运行测试
 python -m pytest backend/tests -v                     # 后端测试
 python -m pytest tests/test_data_generation.py -v     # Phase 3 数据生成测试
 python -m pytest tests/test_phase4_quality_etl.py -v  # Phase 4 数据质量 + ETL 测试
@@ -187,6 +198,7 @@ python -m pytest tests/test_phase9_prediction.py -v   # Phase 9 购买预测测�
 python -m pytest tests/test_phase10_churn.py -v       # Phase 10 流失预测测试
 python -m pytest tests/test_phase11_popular.py -v     # Phase 11 Popular 推荐测试
 python -m pytest tests/test_phase12_weight_experiment.py -v  # Phase 12 权重实验测试
+python -m pytest tests/test_phase13_content.py -v      # Phase 13 Content-Based 测试
 ```
 
 ## 技术栈

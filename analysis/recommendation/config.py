@@ -34,6 +34,8 @@ RECOMMENDATION_VERSION = "1.0"
 DEFAULT_BEHAVIOR_WEIGHTS: dict[str, float] = {"pv": 1.0, "click": 2.0, "collect": 3.0, "cart": 4.0, "buy": 5.0}
 DEFAULT_HALF_LIFE_DAYS: int = 7          # 时间衰减半衰期（天）
 DEFAULT_TOP_K: int = 10
+DEFAULT_PRICE_BINS: int = 4              # Content-Based 价格分箱（price_range）
+DEFAULT_SIM_TOP: int = 20                # Content-Based 每种子商品取前 N 个相似商品
 
 
 @dataclass(frozen=True)
@@ -49,6 +51,8 @@ class RecommendConfig:
     top_k: int = DEFAULT_TOP_K
     filter_purchased: bool = True                       # 过滤已购买
     filter_off_shelf: bool = True                       # 过滤已下架
+    n_price_bins: int = DEFAULT_PRICE_BINS              # Content-Based 价格分箱数
+    sim_top: int = DEFAULT_SIM_TOP                      # Content-based 每种子取前 N 相似
     recommend_version: str = RECOMMENDATION_VERSION
 
     @property
@@ -58,6 +62,10 @@ class RecommendConfig:
     @property
     def model_path(self) -> Path:
         return self.output_dir / "popular_model.joblib"
+
+    @property
+    def content_model_path(self) -> Path:
+        return self.output_dir / "content_model.joblib"
 
 
 def _parse_weights(raw: str) -> dict[str, float]:
@@ -93,6 +101,8 @@ def load_recommend_config(**overrides) -> RecommendConfig:
     top_k = overrides.get("top_k") or int(os.environ.get("REC_TOP_K", str(DEFAULT_TOP_K)))
     as_of = overrides.get("as_of_date") or os.environ.get("REC_AS_OF_DATE")
     version = overrides.get("recommend_version") or os.environ.get("REC_VERSION", RECOMMENDATION_VERSION)
+    n_price_bins = overrides.get("n_price_bins") or int(os.environ.get("REC_PRICE_BINS", str(DEFAULT_PRICE_BINS)))
+    sim_top = overrides.get("sim_top") or int(os.environ.get("REC_SIM_TOP", str(DEFAULT_SIM_TOP)))
 
     return RecommendConfig(
         processed_dir=_path("processed_dir", _PROJECT_ROOT / "data" / "processed"),
@@ -104,5 +114,7 @@ def load_recommend_config(**overrides) -> RecommendConfig:
         top_k=int(top_k),
         filter_purchased=bool(overrides.get("filter_purchased", os.environ.get("REC_FILTER_PURCHASED", "1") in ("1", "true", "True", "yes"))),
         filter_off_shelf=bool(overrides.get("filter_off_shelf", os.environ.get("REC_FILTER_OFF_SHELF", "1") in ("1", "true", "True", "yes"))),
+        n_price_bins=int(n_price_bins),
+        sim_top=int(sim_top),
         recommend_version=str(version),
     )

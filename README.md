@@ -45,7 +45,8 @@ models/     训练产物（joblib 模型 + metadata）
 | 9 | 购买预测（滚动快照：过去30天特征 -> 未来7天是否购买；LR + RF；Precision/Recall/F1/ROC-AUC/PR-AUC/混淆矩阵；时间切分防泄漏；模型+metadata+特征重要性） | ✅ 完成 |
 | 10 | 流失预测（观察窗口活跃用户 + 未来30天无关键行为/购买 => 流失；LR + RF；输出 user_id/churn_probability/risk_level；时间切分防泄漏；文档化观察窗口/预测窗口/流失定义） | ✅ 完成 |
 | 11 | Popular Baseline 推荐（PV/Click/Collect/Cart/Buy 加权 + 时间衰减 + 标准化 + 权重可配置；过滤已购买/下架/重复；冷启动支持；统一 recommend 接口） | ✅ 完成 |
-| 12+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
+| 12 | 权重实验（实验A 1/2/3/4/5、实验B 1/2/4/6/8、实验C 1/2/3/5/10；严格时间切分 train/test；Precision@10/Recall@10/F1@10/HitRate@10/NDCG@10/Coverage；最优权重依据离线实验而非主观判断） | ✅ 完成 |
+| 13+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
 
 ## 快速开始（current 阶段）
 
@@ -158,15 +159,23 @@ python scripts/run_recommendation.py --top-k 10              # 每用户推荐�
 #   data/recommendation/popular_recommendations.csv 全体活跃用户 Top-K
 #   data/recommendation/recommendation_meta.json    运行记录（公式/衰减/过滤/冷启动）
 
-# 12. 启动后端
+# 12. 权重实验（Phase 12）：离线时间切分评估三组权重
+python scripts/run_weight_experiment.py              # 默认 k=10, test_ratio=0.25, 最多3000用户
+python scripts/run_weight_experiment.py --k 10 --test-ratio 0.25 --max-users 3000
+
+#   产物
+#   data/recommendation/weight_experiment.csv        三组权重 @K 指标对比表
+#   data/recommendation/weight_experiment.json       明细 + 最优权重结论（依据离线实验）
+
+# 13. 启动后端
 uvicorn backend.app.main:app --reload
 
-# 13. 验证
+# 14. 验证
 curl http://127.0.0.1:8000/api/health
 # 预期: {"code":0,"message":"success","data":{"status":"ok"}}
 # 交互式文档: http://127.0.0.1:8000/docs
 
-# 14. 运行测试
+# 15. 运行测试
 python -m pytest backend/tests -v                     # 后端测试
 python -m pytest tests/test_data_generation.py -v     # Phase 3 数据生成测试
 python -m pytest tests/test_phase4_quality_etl.py -v  # Phase 4 数据质量 + ETL 测试
@@ -177,6 +186,7 @@ python -m pytest tests/test_phase8_features.py -v     # Phase 8 特征工程测�
 python -m pytest tests/test_phase9_prediction.py -v   # Phase 9 购买预测测试
 python -m pytest tests/test_phase10_churn.py -v       # Phase 10 流失预测测试
 python -m pytest tests/test_phase11_popular.py -v     # Phase 11 Popular 推荐测试
+python -m pytest tests/test_phase12_weight_experiment.py -v  # Phase 12 权重实验测试
 ```
 
 ## 技术栈

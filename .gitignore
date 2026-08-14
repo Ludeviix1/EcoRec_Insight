@@ -18,6 +18,7 @@ data/raw/*
 data/interim/*
 data/processed/*
 data/features/*
+data/analysis/*
 !data/**/.gitkeep
 
 # 模型产物

@@ -34,7 +34,7 @@ async function load() {
     const res = await itemsApi.list({
       keyword: keyword.value || undefined,
       category_id: categoryId.value || undefined,
-      status: status.value || undefined,
+      status: status.value === '' ? undefined : status.value,
       sort_by: sortBy.value || undefined,
       order: sortOrder.value,
       limit: pageSize.value,

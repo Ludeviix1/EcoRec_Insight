@@ -5,8 +5,20 @@ export interface ItemDetail extends ItemRow {
   statistics: ItemStatistics
 }
 
+export type ItemListParams = {
+  keyword?: string
+  category_id?: string
+  brand?: string
+  status?: 0 | 1
+  sort_by?: 'brand' | 'price' | 'stock'
+  order?: 'asc' | 'desc'
+  on_shelf_only?: boolean
+  limit?: number
+  offset?: number
+}
+
 export const itemsApi = {
-  list: (params: { keyword?: string; category_id?: string; on_shelf_only?: boolean; limit?: number; offset?: number } = {}) =>
+  list: (params: ItemListParams = {}) =>
     get<Page<ItemRow>>('/items', params),
   detail: (itemId: string) => get<ItemDetail>(`/items/${itemId}`),
   statistics: (itemId: string) => get<ItemStatistics>(`/items/${itemId}/statistics`),

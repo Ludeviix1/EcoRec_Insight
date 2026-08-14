@@ -8,12 +8,17 @@ from ..repositories import analysis_repo, catalog_repo
 def list_items(
     keyword: str | None = None,
     category_id: str | None = None,
+    brand: str | None = None,
+    status: int | None = None,
+    sort_by: str | None = None,
+    order: str = "asc",
     on_shelf_only: bool = False,
     limit: int = 20,
     offset: int = 0,
 ) -> dict:
     return catalog_repo.list_items(
-        keyword=keyword, category_id=category_id, on_shelf_only=on_shelf_only, limit=limit, offset=offset
+        keyword=keyword, category_id=category_id, brand=brand, status=status,
+        sort_by=sort_by, order=order, on_shelf_only=on_shelf_only, limit=limit, offset=offset,
     )
 
 

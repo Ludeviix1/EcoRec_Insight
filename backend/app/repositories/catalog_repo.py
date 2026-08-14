@@ -80,9 +80,16 @@ def get_user(user_id: str) -> dict:
     return dict(row)
 
 
+_SORTABLE = ("brand", "price", "stock")
+
+
 def list_items(
     keyword: str | None = None,
     category_id: str | None = None,
+    brand: str | None = None,
+    status: int | None = None,
+    sort_by: str | None = None,
+    order: str = "asc",
     on_shelf_only: bool = False,
     limit: int = 20,
     offset: int = 0,
@@ -96,8 +103,15 @@ def list_items(
         df = df[mask]
     if category_id:
         df = df[df["category_id"].astype(str) == str(category_id)]
+    if brand:
+        df = df[df["brand"].astype(str).str.contains(brand.strip(), case=False, na=False)]
+    if status is not None:
+        df = df[df["status"].astype(int) == int(status)]
     if on_shelf_only:
         df = df[df["status"].astype(int) == 1]
+    if sort_by in _SORTABLE:
+        ascending = str(order).lower() != "desc"
+        df = df.sort_values(sort_by, ascending=ascending, kind="stable", na_position="last")
     total = int(len(df))
     page = df.iloc[offset : offset + limit]
     records = page.to_dict("records")

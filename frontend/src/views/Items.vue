@@ -12,7 +12,9 @@ const items = ref<ItemRow[]>([])
 const total = ref(0)
 const keyword = ref('')
 const categoryId = ref('')
-const onShelfOnly = ref(false)
+const status = ref<'' | 0 | 1>('')
+const sortBy = ref<'' | 'brand' | 'price' | 'stock'>('')
+const sortOrder = ref<'asc' | 'desc'>('asc')
 const categories = ref<RankingCategory[]>([])
 const page = ref(1)
 const pageSize = ref(20)
@@ -32,7 +34,9 @@ async function load() {
     const res = await itemsApi.list({
       keyword: keyword.value || undefined,
       category_id: categoryId.value || undefined,
-      on_shelf_only: onShelfOnly.value,
+      status: status.value || undefined,
+      sort_by: sortBy.value || undefined,
+      order: sortOrder.value,
       limit: pageSize.value,
       offset: (page.value - 1) * pageSize.value,
     })
@@ -46,6 +50,14 @@ async function load() {
 function onSearch() {
   page.value = 1
   load()
+}
+function onSortByChange() {
+  sortOrder.value = 'asc'
+  onSearch()
+}
+function toggleOrder() {
+  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  onSearch()
 }
 function onPageChange(p: number) {
   page.value = p
@@ -70,7 +82,18 @@ onMounted(() => {
       <el-select v-model="categoryId" placeholder="分类" clearable filterable style="width: 160px" @change="onSearch">
         <el-option v-for="c in categories" :key="c.category_id" :label="c.category_name || c.category_id" :value="c.category_id" />
       </el-select>
-      <el-checkbox v-model="onShelfOnly" @change="onSearch">仅上架</el-checkbox>
+      <el-select v-model="status" placeholder="状态" clearable style="width: 110px" @change="onSearch">
+        <el-option label="上架" :value="1" />
+        <el-option label="下架" :value="0" />
+      </el-select>
+      <el-select v-model="sortBy" placeholder="排序字段" clearable style="width: 120px" @change="onSortByChange">
+        <el-option label="品牌" value="brand" />
+        <el-option label="价格" value="price" />
+        <el-option label="库存" value="stock" />
+      </el-select>
+      <el-button :disabled="!sortBy" @click="toggleOrder">
+        {{ sortOrder === 'asc' ? '升序 ↑' : '降序 ↓' }}
+      </el-button>
       <el-button type="primary" @click="onSearch">搜索</el-button>
     </PageHeader>
 

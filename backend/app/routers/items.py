@@ -20,11 +20,18 @@ def ranking(top_n: int = Query(10, ge=1, le=100)) -> ApiResponse[dict]:
 def list_items(
     keyword: str | None = Query(None, description="搜索 item_id / item_name"),
     category_id: str | None = Query(None, description="分类 ID"),
+    brand: str | None = Query(None, description="品牌（模糊匹配）"),
+    status: int | None = Query(None, ge=0, le=1, description="状态：1 上架 / 0 下架"),
+    sort_by: str | None = Query(None, pattern="^(brand|price|stock)$", description="排序字段：brand/price/stock"),
+    order: str = Query("asc", pattern="^(asc|desc)$", description="排序方向：asc/desc"),
     on_shelf_only: bool = Query(False, description="只看上架"),
     limit: int = Query(20, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ) -> ApiResponse[dict]:
-    return ok(item_service.list_items(keyword=keyword, category_id=category_id, on_shelf_only=on_shelf_only, limit=limit, offset=offset))
+    return ok(item_service.list_items(
+        keyword=keyword, category_id=category_id, brand=brand, status=status,
+        sort_by=sort_by, order=order, on_shelf_only=on_shelf_only, limit=limit, offset=offset,
+    ))
 
 
 @router.get("/{item_id}/statistics", response_model=ApiResponse[dict], summary="商品画像统计")

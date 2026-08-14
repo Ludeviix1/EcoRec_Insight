@@ -296,6 +296,9 @@ def test_run_analysis_produces_all_outputs(analysis_dir):
         "user_scale", "dau_wau_mau", "behavior", "active_time", "gmv",
         "item_ranking", "category_ranking", "brand_ranking", "funnel",
         "retention", "cohort", "rfm",
+        "lifecycle", "purchase_path", "item_lifecycle", "price",
+        "channel", "device", "association", "user_segments",
+        "user_profile", "item_profile", "findings",
         "analysis_meta",
     }
     files = {p.stem for p in analysis_dir.glob("*.json")}
@@ -306,6 +309,9 @@ def test_run_analysis_produces_all_outputs(analysis_dir):
         "user_scale", "dau_wau_mau", "behavior", "active_time", "gmv",
         "item_ranking", "category_ranking", "brand_ranking", "funnel",
         "retention", "cohort", "rfm",
+        "lifecycle", "purchase_path", "item_lifecycle", "price",
+        "channel", "device", "association", "user_segments",
+        "user_profile", "item_profile", "findings",
     ]
 
     # 抽查结构：funnel 5 阶段

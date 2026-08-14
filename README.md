@@ -40,7 +40,8 @@ models/     训练产物（joblib 模型 + metadata）
 | 4 | 数据质量 + ETL（清洗/质检/报告/Processed/MySQL 批量入库，可重复执行） | ✅ 完成 |
 | 5 | 基础分析（用户规模 / DAU·WAU·MAU / 行为 / 活跃时间 / GMV / 商品·分类·品牌排行 / 漏斗） | ✅ 完成 |
 | 6 | 留存 + Cohort + RFM（留存口径 / cohort 起点 / RFM 规则可配置 / 分群可解释） | ✅ 完成 |
-| 7+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
+| 7 | 深度业务分析（生命周期 / 购买路径 / 商品生命周期 / 价格 / 渠道 / 设备 / 关联规则 / 用户分群 / 用户画像 / 商品画像 / 业务发现） | ✅ 完成 |
+| 8+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
 
 ## 快速开始（current 阶段）
 
@@ -72,7 +73,7 @@ python scripts/run_etl.py --skip-mysql             # 只产出清洗数据 + 质
 #   data/interim/data_quality_report.json   数据质量报告
 #   data/interim/etl_meta.json              ETL 运行记录（dataset_version 等）
 
-# 7. 分析：读取 processed，输出结构化 JSON 到 data/analysis（Phase 5 基础分析 + Phase 6 留存/Cohort/RFM）
+# 7. 分析：读取 processed，输出结构化 JSON 到 data/analysis（Phase 5 基础 + Phase 6 留存/RFM + Phase 7 深度分析）
 python scripts/run_analysis.py
 python scripts/run_analysis.py --top-n 20     # 排行 TOP N 可调
 
@@ -89,7 +90,18 @@ python scripts/run_analysis.py --top-n 20     # 排行 TOP N 可调
 #   data/analysis/retention.json             留存（次日/3/7/14/30 日）
 #   data/analysis/cohort.json                Cohort 留存矩阵（热力图）
 #   data/analysis/rfm.json                   RFM 用户价值分群
-#   data/analysis/analysis_meta.json         运行记录
+#   data/analysis/lifecycle.json             用户生命周期（规则可配置）
+#   data/analysis/purchase_path.json         用户购买路径（会话切分）
+#   data/analysis/item_lifecycle.json        商品生命周期
+#   data/analysis/price.json                 价格分析（自动分箱）
+#   data/analysis/channel.json               渠道质量对比（非 ROI）
+#   data/analysis/device.json                设备分析
+#   data/analysis/association.json           商品/分类关联规则（Apriori）
+#   data/analysis/user_segments.json         KMeans 用户分群（业务解释）
+#   data/analysis/user_profile.json          用户画像
+#   data/analysis/item_profile.json          商品画像
+#   data/analysis/findings.json              业务发现（现象→证据→原因→建议，注明模拟数据）
+#   data/analysis/analysis_meta.json         运行记录（analysis_version 3.0）
 
 # 8. 启动后端
 uvicorn backend.app.main:app --reload
@@ -105,6 +117,7 @@ python -m pytest tests/test_data_generation.py -v     # Phase 3 数据生成测�
 python -m pytest tests/test_phase4_quality_etl.py -v  # Phase 4 数据质量 + ETL 测试
 python -m pytest tests/test_phase5_analysis.py -v     # Phase 5 基础分析测试
 python -m pytest tests/test_phase6_analysis.py -v     # Phase 6 留存/Cohort/RFM 测试
+python -m pytest tests/test_phase7_analysis.py -v     # Phase 7 深度业务分析测试
 ```
 
 ## 技术栈

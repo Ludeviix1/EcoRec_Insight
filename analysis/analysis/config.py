@@ -13,7 +13,7 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 # 分析版本（开发文档第 E 节 / 第 47 节：可复现性）
-ANALYSIS_VERSION = "2.0"
+ANALYSIS_VERSION = "3.0"
 
 
 @dataclass(frozen=True)

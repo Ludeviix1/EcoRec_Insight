@@ -7,7 +7,7 @@
 - ``itemcf``：Item-CF（user-item 加权矩阵 + item-item 余弦）；
 - ``usercf``：User-CF（user-user 余弦 + 相似用户加权）；
 - ``hybrid``：四路召回归一化后加权融合（权重可配置）；
-- ``evaluate``：离线时间切分评估 + 权重实验 + 多算法对比；
+- ``evaluate``：离线时间切分评估 + 权重实验 + 多算法对比 + 规范化结论；
 - ``run``：全量入口，产物落盘 data/recommendation/。
 """
 

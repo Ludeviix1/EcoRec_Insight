@@ -1,18 +1,21 @@
-"""Phase 14 Hybrid 推荐 + baseline vs hybrid 离线对比（开发文档第 49.12 节 / 36 节）。
+"""Phase 15 推荐评估（开发文档第 49.13 节 / 36 节）。
+
+必须严格使用时间切分（历史行为 → train，未来行为 → test，推荐只用 train 信息），
+对比 5 种算法：Popular / ItemCF / UserCF / Content / Hybrid，
+输出每算法的 Precision@10 / Recall@10 / F1@10 / HitRate@10 / NDCG@10 / Coverage。
+
+结论必须基于评估指标：若 Hybrid 未优于 Popular baseline，不强行声称 Hybrid 更好。
 
 运行：
-    python scripts/run_hybrid.py
-    python scripts/run_hybrid.py --hybrid-weights 'itemcf:0.25,usercf:0.15,popular:0.30,content:0.30'
-    python scripts/run_hybrid.py --k 10 --test-ratio 0.25 --max-users 3000
+    python scripts/run_evaluation.py
+    python scripts/run_evaluation.py --k 10 --test-ratio 0.25 --max-users 3000
 
 产物写入 data/recommendation/：
-    hybrid_model.joblib                    模型（供 FastAPI 加载）
-    hybrid_recommendations.csv             全体活跃用户 Top-K
-    hybrid_meta.json                       运行记录（公式/融合/过滤/冷启动）
-    algo_comparison.csv                    baseline vs hybrid 离线指标对比表
-    algo_comparison.json                   对比明细 + 结论（基于评估指标）
+    evaluation_summary.csv             规范列名（Algorithm, Precision@10, ... Coverage）
+    evaluation_summary.json            5 算法指标明细 + 诚实结论（基于离线指标）
 """
 
+import argparse
 import json
 import logging
 import sys
@@ -31,10 +34,10 @@ from analysis.recommendation.evaluate import (  # noqa: E402
     DEFAULT_TEST_RATIO,
     compare_algorithms,
     conclude_vs_baseline,
+    report_table,
 )
-from analysis.recommendation.run import build_hybrid  # noqa: E402
 
-logger = logging.getLogger("analysis.recommendation.hybrid")
+logger = logging.getLogger("analysis.recommendation.evaluation")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -43,20 +46,13 @@ def main(argv: list[str] | None = None) -> int:
         format="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    import argparse
-    parser = argparse.ArgumentParser(description="Hybrid: ItemCF+UserCF+Popular+Content 加权融合")
+    parser = argparse.ArgumentParser(description="Phase 15: 5 算法离线时间切分评估")
     parser.add_argument("--processed-dir", type=str, default=None)
     parser.add_argument("--interim-dir", type=str, default=None)
     parser.add_argument("--output-dir", type=str, default=None)
-    parser.add_argument("--behavior-weights", type=str, default=None)
-    parser.add_argument("--half-life-days", type=float, default=None)
-    parser.add_argument("--top-k", type=int, default=None)
-    parser.add_argument("--hybrid-weights", type=str, default=None,
-                        help='混合权重 JSON 或 "itemcf:0.25,usercf:0.15,popular:0.30,content:0.30"')
-    parser.add_argument("--n-neighbors", type=int, default=None, help="User-CF 相似用户数（默认 50）")
-    parser.add_argument("--price-bins", type=int, default=None)
-    parser.add_argument("--sim-top", type=int, default=None)
-    parser.add_argument("--k", type=int, default=DEFAULT_EVAL_K, help="离线评估 Top-K（默认 10）")
+    parser.add_argument("--hybrid-weights", type=str, default=None)
+    parser.add_argument("--n-neighbors", type=int, default=None)
+    parser.add_argument("--k", type=int, default=DEFAULT_EVAL_K)
     parser.add_argument("--test-ratio", type=float, default=DEFAULT_TEST_RATIO)
     parser.add_argument("--max-users", type=int, default=DEFAULT_MAX_USERS)
     args = parser.parse_args(argv)
@@ -65,34 +61,27 @@ def main(argv: list[str] | None = None) -> int:
         processed_dir=args.processed_dir,
         interim_dir=args.interim_dir,
         output_dir=args.output_dir,
-        behavior_weights=args.behavior_weights,
-        half_life_days=args.half_life_days,
-        top_k=args.top_k,
         hybrid_weights=args.hybrid_weights,
         n_neighbors=args.n_neighbors,
-        n_price_bins=args.price_bins,
-        sim_top=args.sim_top,
     )
 
-    # 1) baseline vs hybrid 离线对比（结论依据评估指标）
     items = load_processed(cfg.processed_dir, "items")
     behaviors = load_processed(cfg.processed_dir, "user_behaviors")
     orders = load_processed(cfg.processed_dir, "orders")
     order_items = load_processed(cfg.processed_dir, "order_items")
+
     t0 = time.perf_counter()
     summary, details = compare_algorithms(
         behaviors, items, orders, order_items, cfg=cfg,
         algorithms=["popular", "itemcf", "usercf", "content", "hybrid"],
         k=args.k, test_ratio=args.test_ratio, max_users=args.max_users,
     )
-    summary.to_csv(cfg.output_dir / "algo_comparison.csv", index=False, encoding="utf-8-sig")
+    table = report_table(summary, k=args.k)
+    table.to_csv(cfg.output_dir / "evaluation_summary.csv", index=False, encoding="utf-8-sig")
 
-    base = details.get("popular", {})
-    hyb = details.get("hybrid", {})
     conclusion = conclude_vs_baseline(details, k=args.k, baseline="popular")
-    better = (hyb.get("ndcg@k", 0) or 0) > (base.get("ndcg@k", 0) or 0)
-    cmp_doc = {
-        "task": "algo_comparison",
+    doc = {
+        "task": "evaluation",
         "method": "严格时间切分（历史→train，未来→test），推荐只用 train 信息",
         "test_ratio": args.test_ratio,
         "k": args.k,
@@ -105,13 +94,10 @@ def main(argv: list[str] | None = None) -> int:
         "conclusion": conclusion,
         "elapsed_seconds": round(time.perf_counter() - t0, 2),
     }
-    (cfg.output_dir / "algo_comparison.json").write_text(
-        json.dumps(cmp_doc, ensure_ascii=False, indent=2), encoding="utf-8")
-    logger.info("对比完成 | %s | %s", "popular vs hybrid", conclusion)
-    print(summary.to_string(index=False))
-
-    # 2) 构建并保存 Hybrid 模型（供 FastAPI）
-    build_hybrid(cfg)
+    (cfg.output_dir / "evaluation_summary.json").write_text(
+        json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+    logger.info("评估完成 | %s", conclusion)
+    print(table.to_string(index=False))
     return 0
 
 

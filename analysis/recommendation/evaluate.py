@@ -245,3 +245,44 @@ def compare_algorithms(behaviors: pd.DataFrame, items: pd.DataFrame,
     summary = pd.DataFrame(rows).sort_values("ndcg@k", ascending=False).reset_index(drop=True)
     summary["rank"] = range(1, len(summary) + 1)
     return summary, details
+
+
+def report_table(summary: pd.DataFrame, k: int = DEFAULT_EVAL_K) -> pd.DataFrame:
+    """把 compare_algorithms 的表整理成开发文档规定的输出列（Phase 15 第 49.13 节）。
+
+    Algorithm / Precision@10 / Recall@10 / F1@10 / HitRate@10 / NDCG@10 / Coverage
+    """
+    if summary.empty:
+        return summary.copy()
+    ren = {
+        "algorithm": "Algorithm",
+        "precision@k": f"Precision@{k}",
+        "recall@k": f"Recall@{k}",
+        "f1@k": f"F1@{k}",
+        "hit_rate@k": f"HitRate@{k}",
+        "ndcg@k": f"NDCG@{k}",
+        "coverage@k": "Coverage",
+    }
+    cols = [c for c in ("algorithm", "precision@k", "recall@k", "f1@k",
+                        "hit_rate@k", "ndcg@k", "coverage@k") if c in summary.columns]
+    return summary[cols].rename(columns=ren).copy()
+
+
+def conclude_vs_baseline(details: dict[str, dict], k: int = DEFAULT_EVAL_K,
+                         baseline: str = "popular") -> str:
+    """依据离线指标给出诚实结论（Phase 15：候选未优于 baseline 时禁止声称更好）。
+
+    判定：候选算法 NDCG@{k} 必须严格高于 baseline 才算更优；否则不声称更好。
+    """
+    base = details.get(baseline, {}) or {}
+    cand = [n for n in details if n != baseline and details[n]]
+    if not cand:
+        return f"无 {baseline} 之外的候选算法可对比（基于离线指标）"
+    top = max(cand, key=lambda n: (details[n] or {}).get("ndcg@k", 0.0))
+    b_ndcg = base.get("ndcg@k") or 0.0
+    t_ndcg = (details[top] or {}).get("ndcg@k") or 0.0
+    if t_ndcg > b_ndcg:
+        return (f"{top} NDCG@{k}={t_ndcg} vs {baseline}={b_ndcg} → "
+                f"{top} 更优（基于离线指标）")
+    return (f"最高候选 {top} NDCG@{k}={t_ndcg} 未严格高于 {baseline}={b_ndcg}，"
+            f"不强行声称混合更好（基于离线指标）")

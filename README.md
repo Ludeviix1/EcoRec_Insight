@@ -48,7 +48,8 @@ models/     训练产物（joblib 模型 + metadata）
 | 12 | 权重实验（实验A 1/2/3/4/5、实验B 1/2/4/6/8、实验C 1/2/3/5/10；严格时间切分 train/test；Precision@10/Recall@10/F1@10/HitRate@10/NDCG@10/Coverage；最优权重依据离线实验而非主观判断） | ✅ 完成 |
 | 13 | Content-Based 推荐（category/brand/price_range/item tags 构造商品向量 + 余弦相似度；用户历史商品→相似商品→分数累加→过滤→Top-K；已购买/下架过滤；冷启动商品与新用户兜底） | ✅ 完成 |
 | 14 | Hybrid 推荐（ItemCF + UserCF + Popular + Content 四路召回归一化到 [0,1] 后加权融合，权重可配置；baseline vs hybrid 离线对比并依据评估指标给结论） | ✅ 完成 |
-| 15+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
+| 15 | 推荐评估（严格时间切分：历史→train，未来→test，推荐只用 train；对比 Popular/ItemCF/UserCF/Content/Hybrid 五算法，输出 Precision@10/Recall@10/F1@10/HitRate@10/NDCG@10/Coverage；结论必须基于评估指标，Hybrid 未优于 Popular 时禁止强行声称更好） | ✅ 完成 |
+| 16+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
 
 ## 快速开始（current 阶段）
 
@@ -191,15 +192,23 @@ python scripts/run_hybrid.py --n-neighbors 50 --k 10 --test-ratio 0.25   # User-
 #   data/recommendation/algo_comparison.csv             5 算法离线指标对比表
 #   data/recommendation/algo_comparison.json            对比明细 + 结论（依据评估指标）
 
-# 15. 启动后端
+# 15. 推荐评估（Phase 15）：5 算法严格时间切分离线对比
+python scripts/run_evaluation.py
+python scripts/run_evaluation.py --k 10 --test-ratio 0.25 --max-users 3000
+
+#   产物
+#   data/recommendation/evaluation_summary.csv          规范列名（Algorithm, Precision@10, ... Coverage）
+#   data/recommendation/evaluation_summary.json         5 算法指标明细 + 诚实结论（基于离线指标）
+
+# 16. 启动后端
 uvicorn backend.app.main:app --reload
 
-# 16. 验证
+# 17. 验证
 curl http://127.0.0.1:8000/api/health
 # 预期: {"code":0,"message":"success","data":{"status":"ok"}}
 # 交互式文档: http://127.0.0.1:8000/docs
 
-# 17. 运行测试
+# 18. 运行测试
 python -m pytest backend/tests -v                     # 后端测试
 python -m pytest tests/test_data_generation.py -v     # Phase 3 数据生成测试
 python -m pytest tests/test_phase4_quality_etl.py -v  # Phase 4 数据质量 + ETL 测试
@@ -213,6 +222,7 @@ python -m pytest tests/test_phase11_popular.py -v     # Phase 11 Popular 推荐�
 python -m pytest tests/test_phase12_weight_experiment.py -v  # Phase 12 权重实验测试
 python -m pytest tests/test_phase13_content.py -v      # Phase 13 Content-Based 测试
 python -m pytest tests/test_phase14_hybrid.py -v       # Phase 14 Hybrid 测试
+python -m pytest tests/test_phase15_evaluation.py -v   # Phase 15 推荐评估测试
 ```
 
 ## 技术栈

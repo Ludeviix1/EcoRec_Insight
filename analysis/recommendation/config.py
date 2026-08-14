@@ -76,8 +76,12 @@ class RecommendConfig:
         return self.output_dir / "hybrid_model.joblib"
 
 
-def _parse_weights(raw: str) -> dict[str, float]:
-    """解析行为权重：支持 JSON 或 "pv:1,click:2,...,buy:5"。"""
+def _parse_weights(raw: str | dict) -> dict[str, float]:
+    """解析权重：支持 dict、JSON 字符串或 "pv:1,click:2,...,buy:5"。"""
+    if isinstance(raw, dict):
+        if not raw:
+            return dict(DEFAULT_BEHAVIOR_WEIGHTS)
+        return {str(k): float(v) for k, v in raw.items()}
     raw = raw.strip()
     if not raw:
         return dict(DEFAULT_BEHAVIOR_WEIGHTS)

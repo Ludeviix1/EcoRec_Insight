@@ -83,6 +83,14 @@ def get_user(user_id: str) -> dict:
 _SORTABLE = ("brand", "price", "stock")
 
 
+@lru_cache(maxsize=1024)
+def _pinyin_key(text: str) -> str:
+    """品牌转拼音首字母（'华为' -> 'hw'）；非中文原样保留并统一小写，保证与中文混排可比。"""
+    from pypinyin import Style, lazy_pinyin
+
+    return "".join(lazy_pinyin(text, style=Style.FIRST_LETTER)).lower()
+
+
 def list_items(
     keyword: str | None = None,
     category_id: str | None = None,
@@ -111,7 +119,12 @@ def list_items(
         df = df[df["status"].astype(int) == 1]
     if sort_by in _SORTABLE:
         ascending = str(order).lower() != "desc"
-        df = df.sort_values(sort_by, ascending=ascending, kind="stable", na_position="last")
+        if sort_by == "brand":
+            key = df["brand"].map(lambda v: _pinyin_key(v) if isinstance(v, str) else v)
+            df = df.assign(_sort_key=key)
+            df = df.sort_values("_sort_key", ascending=ascending, kind="stable", na_position="last").drop(columns="_sort_key")
+        else:
+            df = df.sort_values(sort_by, ascending=ascending, kind="stable", na_position="last")
     total = int(len(df))
     page = df.iloc[offset : offset + limit]
     records = page.to_dict("records")

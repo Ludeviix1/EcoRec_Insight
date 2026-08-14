@@ -94,9 +94,11 @@ class HybridRecommender(BaseRecommender):
         total = comp_df.sum(axis=1).sort_values(ascending=False)
         ranked = total.head(top_k).copy().reset_index()
         ranked.columns = ["item_id", "score"]
+        _weight_labels = {"itemcf": "物品协同", "usercf": "用户协同", "popular": "热门推荐", "content": "内容推荐"}
+        _weights_str = "、".join(f"{_weight_labels.get(k, k)} {v}" for k, v in self.hybrid_weights.items())
         ranked["reason"] = (
-            "混合召回：ItemCF+UserCF+Popular+Content 分数归一化后加权融合"
-            f"（权重 {self.hybrid_weights}）"
+            "混合召回：物品协同 + 用户协同 + 热门 + 内容 四路分数归一化后加权融合"
+            f"（权重：{_weights_str}）"
         )
         ranked["score"] = ranked["score"].round(4)
         return ranked[["item_id", "score", "reason"]]

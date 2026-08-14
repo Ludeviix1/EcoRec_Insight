@@ -42,9 +42,12 @@ def get_rankings(top_n: int = 10) -> dict:
     items = analysis_repo.get_item("item-ranking")
     categories = analysis_repo.get_item("category-ranking")
     brands = analysis_repo.get_item("brand-ranking")
+    cats = (categories.get("categories") or [])[:top_n]
+    for c in cats:
+        c["category_name"] = catalog_repo.category_name(c.get("category_id"))
     return {
         "top_n": top_n,
         "items": (items.get("items") or [])[:top_n],
-        "categories": (categories.get("categories") or [])[:top_n],
+        "categories": cats,
         "brands": (brands.get("brands") or [])[:top_n],
     }

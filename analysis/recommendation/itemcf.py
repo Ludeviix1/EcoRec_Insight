@@ -105,6 +105,6 @@ class ItemCFRecommender(BaseRecommender):
         score = self.score_candidates(user_id, candidates).sort_values(ascending=False)
         ranked = score.head(top_k).copy().reset_index()
         ranked.columns = ["item_id", "score"]
-        ranked["reason"] = "Item-CF：与你历史互交的商品经常被一起浏览/购买（item-item 相似）"
+        ranked["reason"] = "物品协同：与你历史浏览/购买过的商品经常被一起浏览或购买（商品间相似）"
         ranked["score"] = ranked["score"].round(4)
         return ranked[["item_id", "score", "reason"]]

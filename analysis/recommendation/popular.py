@@ -88,5 +88,5 @@ class PopularRecommender(BaseRecommender):
         cand = candidates.intersection(table.index)
         ranked = table.loc[cand].sort_values("score", ascending=False).head(top_k).copy()
         ranked["item_id"] = ranked.index
-        ranked["reason"] = "全网热门：按 PV/Click/Collect/Cart/Buy 加权并叠加时间衰减计算人气"
+        ranked["reason"] = "全网热门：按浏览/点击/收藏/加购/购买加权并叠加时间衰减计算人气"
         return ranked.reset_index(drop=True)[["item_id", "score", "reason"]]

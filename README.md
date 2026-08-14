@@ -50,7 +50,7 @@ models/     训练产物（joblib 模型 + metadata）
 | 14 | Hybrid 推荐（ItemCF + UserCF + Popular + Content 四路召回归一化到 [0,1] 后加权融合，权重可配置；baseline vs hybrid 离线对比并依据评估指标给结论） | ✅ 完成 |
 | 15 | 推荐评估（严格时间切分：历史→train，未来→test，推荐只用 train；对比 Popular/ItemCF/UserCF/Content/Hybrid 五算法，输出 Precision@10/Recall@10/F1@10/HitRate@10/NDCG@10/Coverage；结论必须基于评估指标，Hybrid 未优于 Popular 时禁止强行声称更好） | ✅ 完成 |
 | 16 | FastAPI 全量接口（Router→Service→Repository→Database/Model 分层；Dashboard/Users/Items/Analysis/Models/Recommendations 30+ 接口；离线产物直接复用，推荐模型只加载不重训，itemcf/usercf 进程内一次性构建并缓存） | ✅ 完成 |
-| 17+ | 详见 `开发文档2.2.md` 第 49 节 Phase 规划 | 待开发 |
+| 17 | Vue3 全量页面（仪表盘/用户/商品/深度分析/智能推荐/预测模型，演示闭环 + ECharts 可视化） | ✅ 完成 |
 
 ## 快速开始（current 阶段）
 
@@ -225,6 +225,31 @@ python -m pytest tests/test_phase12_weight_experiment.py -v  # Phase 12 权重�
 python -m pytest tests/test_phase13_content.py -v      # Phase 13 Content-Based 测试
 python -m pytest tests/test_phase14_hybrid.py -v       # Phase 14 Hybrid 测试
 python -m pytest tests/test_phase15_evaluation.py -v   # Phase 15 推荐评估测试
+```
+
+## 前端（Phase 17）
+
+后端启动后（`uvicorn backend.app.main:app --reload`），启动 Vue3 前端：
+
+``` bash
+cd frontend
+npm install
+npm run dev        # 开发服务器: http://127.0.0.1:5173 （/api 自动代理到 127.0.0.1:8000）
+npm run build      # 生产构建（vue-tsc 类型检查 + vite build）
+npm run typecheck  # 仅类型检查
+```
+
+核心页面与演示闭环：
+
+``` text
+仪表盘 Dashboard    用户规模 / DAU·WAU·MAU / GMV / 行为 / 漏斗 / Cohort / 排行
+用户管理 Users       检索用户 → 用户画像（RFM/生命周期/购买/流失预测）→ 推荐
+商品管理 Items       商品检索 → 商品画像（行为热度 / 销售 / 价格档 / 生命周期）
+深度分析 Analysis    RFM / 生命周期 / Cohort / 路径 / 渠道 / 设备 / 价格 / 关联规则 / 分群 / 业务发现
+智能推荐 Recs        选择用户 → 画像与预测 → 推荐 → 切换算法 → 查看原因 → 多算法对比 → 评估
+预测模型 Models      购买/流失模型指标、特征重要性、高风险用户列表、评估汇总
+
+演示流程：选择用户 → 查看用户画像 → 查看 RFM/生命周期 → 查看购买/流失概率 → 获取推荐 → 切换推荐算法 → 查看推荐原因 → 查看推荐评估
 ```
 
 ## 技术栈

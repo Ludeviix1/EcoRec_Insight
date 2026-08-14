@@ -105,6 +105,6 @@ class UserCFRecommender(BaseRecommender):
         score = self.score_candidates(user_id, candidates).sort_values(ascending=False)
         ranked = score.head(top_k).copy().reset_index()
         ranked.columns = ["item_id", "score"]
-        ranked["reason"] = "User-CF：与你偏好相似的用户喜欢的商品"
+        ranked["reason"] = "用户协同：与偏好相似的其它用户喜欢的商品"
         ranked["score"] = ranked["score"].round(4)
         return ranked[["item_id", "score", "reason"]]

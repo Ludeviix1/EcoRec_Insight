@@ -1,0 +1,348 @@
+/* =========================================================================
+   全局样式与主题：简洁、大方、沉稳
+   ========================================================================= */
+
+:root {
+  /* 主色：稳重的蓝 */
+  --color-primary: #3457a8;
+  --color-primary-light: #5478c4;
+  --color-primary-dark: #28458a;
+
+  /* 中性色 */
+  --color-bg: #f4f6fa;
+  --color-surface: #ffffff;
+  --color-sidebar: #1e293b;
+  --color-sidebar-2: #243244;
+  --color-sidebar-hover: #2d3a52;
+  --color-text: #1f2937;
+  --color-text-regular: #4b5563;
+  --color-text-secondary: #6b7280;
+  --color-text-placeholder: #9ca3af;
+  --color-border: #e8ebf1;
+  --color-border-light: #f0f2f6;
+
+  /* 语义色 */
+  --color-success: #2f9e6e;
+  --color-warning: #d98a2b;
+  --color-danger: #c0504d;
+  --color-info: #6b7280;
+
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+  --shadow-hover: 0 4px 14px rgba(15, 23, 42, 0.08);
+  --radius: 8px;
+  --radius-sm: 6px;
+  --sidebar-width: 220px;
+  --header-height: 56px;
+
+  /* 覆盖 Element Plus 主色（保持与主题一致） */
+  --el-color-primary: #3457a8;
+  --el-color-primary-light-3: #5c7cbf;
+  --el-color-primary-light-5: #84a1d0;
+  --el-color-primary-light-7: #b3c4e2;
+  --el-color-primary-light-8: #c9d5ea;
+  --el-color-primary-light-9: #e3eaf5;
+  --el-color-primary-dark-2: #2a468a;
+  --el-border-radius-base: 6px;
+  --el-font-family: 'Inter', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--el-font-family);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* 滚动条：细而克制 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cdd4df;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b6bfcc;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* =========================================================================
+   应用布局
+   ========================================================================= */
+
+.app-layout {
+  display: flex;
+  height: 100%;
+}
+
+.app-sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--color-sidebar);
+  color: #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+}
+
+.app-sidebar__brand {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.app-sidebar__brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.app-sidebar__brand-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f1f5f9;
+  line-height: 1.3;
+}
+
+.app-sidebar__menu {
+  flex: 1;
+  padding: 12px 10px;
+  overflow-y: auto;
+}
+
+.app-sidebar__menu ::v-deep(.el-menu) {
+  background: transparent;
+  border-right: none;
+}
+
+.app-sidebar__menu .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 13.5px;
+  margin-bottom: 2px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.app-sidebar__menu .nav-item:hover {
+  background: var(--color-sidebar-hover);
+  color: #fff;
+}
+
+.app-sidebar__menu .nav-item.is-active {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(52, 87, 168, 0.35);
+}
+
+.app-sidebar__menu .nav-item .el-icon {
+  font-size: 17px;
+}
+
+.app-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-header {
+  height: var(--header-height);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.app-header__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.app-header__sub {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  margin-left: 10px;
+}
+
+.app-content {
+  padding: 20px 24px 32px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* =========================================================================
+   通用工具类
+   ========================================================================= */
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.page-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 4px 0 0;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.card-pad {
+  padding: 16px 18px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+
+.muted {
+  color: var(--color-text-secondary);
+}
+
+.mono {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+.flex {
+  display: flex;
+}
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.flex-center {
+  display: flex;
+  align-items: center;
+}
+.gap-8 {
+  gap: 8px;
+}
+.gap-12 {
+  gap: 12px;
+}
+.gap-16 {
+  gap: 16px;
+}
+.wrap {
+  flex-wrap: wrap;
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+
+/* 指标值 */
+.metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.metric-label {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+
+/* tag 颜色微调 */
+.tag-soft {
+  border: none;
+  font-weight: 500;
+}
+
+/* 表格密度 */
+.dense-table .el-table__cell {
+  padding: 8px 0;
+}
+
+/* Element Plus 表格头略沉稳 */
+.el-table th.el-table__cell {
+  background: #f7f9fc;
+  color: var(--color-text-regular);
+  font-weight: 600;
+}
+
+/* loading 遮罩轻量化 */
+.el-loading-mask {
+  background: rgba(255, 255, 255, 0.7);
+}

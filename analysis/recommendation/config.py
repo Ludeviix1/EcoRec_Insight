@@ -36,6 +36,8 @@ DEFAULT_HALF_LIFE_DAYS: int = 7          # 时间衰减半衰期（天）
 DEFAULT_TOP_K: int = 10
 DEFAULT_PRICE_BINS: int = 4              # Content-Based 价格分箱（price_range）
 DEFAULT_SIM_TOP: int = 20                # Content-Based 每种子商品取前 N 个相似商品
+DEFAULT_HYBRID_WEIGHTS: dict[str, float] = {"itemcf": 0.25, "usercf": 0.15, "popular": 0.30, "content": 0.30}
+DEFAULT_N_NEIGHBORS: int = 50            # User-CF 相似用户数
 
 
 @dataclass(frozen=True)
@@ -53,6 +55,8 @@ class RecommendConfig:
     filter_off_shelf: bool = True                       # 过滤已下架
     n_price_bins: int = DEFAULT_PRICE_BINS              # Content-Based 价格分箱数
     sim_top: int = DEFAULT_SIM_TOP                      # Content-based 每种子取前 N 相似
+    hybrid_weights: dict[str, float] = field(default_factory=lambda: dict(DEFAULT_HYBRID_WEIGHTS))  # Hybrid 融合权重
+    n_neighbors: int = DEFAULT_N_NEIGHBORS              # User-CF 相似用户数
     recommend_version: str = RECOMMENDATION_VERSION
 
     @property
@@ -66,6 +70,10 @@ class RecommendConfig:
     @property
     def content_model_path(self) -> Path:
         return self.output_dir / "content_model.joblib"
+
+    @property
+    def hybrid_model_path(self) -> Path:
+        return self.output_dir / "hybrid_model.joblib"
 
 
 def _parse_weights(raw: str) -> dict[str, float]:
@@ -103,6 +111,14 @@ def load_recommend_config(**overrides) -> RecommendConfig:
     version = overrides.get("recommend_version") or os.environ.get("REC_VERSION", RECOMMENDATION_VERSION)
     n_price_bins = overrides.get("n_price_bins") or int(os.environ.get("REC_PRICE_BINS", str(DEFAULT_PRICE_BINS)))
     sim_top = overrides.get("sim_top") or int(os.environ.get("REC_SIM_TOP", str(DEFAULT_SIM_TOP)))
+    hybrid = (
+        _parse_weights(overrides["hybrid_weights"])
+        if overrides.get("hybrid_weights")
+        else dict(DEFAULT_HYBRID_WEIGHTS)
+    )
+    if os.environ.get("REC_HYBRID_WEIGHTS"):
+        hybrid = _parse_weights(os.environ["REC_HYBRID_WEIGHTS"]) or hybrid
+    n_neighbors = overrides.get("n_neighbors") or int(os.environ.get("REC_N_NEIGHBORS", str(DEFAULT_N_NEIGHBORS)))
 
     return RecommendConfig(
         processed_dir=_path("processed_dir", _PROJECT_ROOT / "data" / "processed"),
@@ -116,5 +132,7 @@ def load_recommend_config(**overrides) -> RecommendConfig:
         filter_off_shelf=bool(overrides.get("filter_off_shelf", os.environ.get("REC_FILTER_OFF_SHELF", "1") in ("1", "true", "True", "yes"))),
         n_price_bins=int(n_price_bins),
         sim_top=int(sim_top),
+        hybrid_weights=hybrid,
+        n_neighbors=int(n_neighbors),
         recommend_version=str(version),
     )

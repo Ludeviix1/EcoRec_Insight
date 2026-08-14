@@ -191,3 +191,57 @@ def choose_best(summary: pd.DataFrame) -> str:
     """依据离线实验选择最优权重：按 NDCG@10 排序（并列时按 Recall@10）。"""
     s = summary.sort_values(["ndcg@k", "recall@k"], ascending=False)
     return str(s.iloc[0]["experiment"])
+
+
+def compare_algorithms(behaviors: pd.DataFrame, items: pd.DataFrame,
+                       orders: pd.DataFrame | None = None,
+                       order_items: pd.DataFrame | None = None,
+                       cfg: RecommendConfig | None = None,
+                       algorithms: list[str] | None = None,
+                       k: int = DEFAULT_EVAL_K,
+                       test_ratio: float = DEFAULT_TEST_RATIO,
+                       max_users: int = DEFAULT_MAX_USERS,
+                       ) -> tuple[pd.DataFrame, dict[str, dict]]:
+    """离线对比多个推荐算法（开发文档第 36 节，Phase 14/15 共用）。
+
+    严格时间切分：历史 → train，未来 → test；推荐只用 train 信息。
+    对比指标：Precision@K / Recall@K / F1@K / HitRate@K / NDCG@K / Coverage。
+
+    参数:
+        algorithms: 参与对比的算法名，取值 popular / itemcf / usercf / content / hybrid，
+                    默认全部。
+    返回:
+        (summary, details) 与 run_weight_experiment 结构一致。
+    """
+    from .content import ContentRecommender
+    from .hybrid import HybridRecommender
+    from .itemcf import ItemCFRecommender
+    from .popular import PopularRecommender
+    from .usercf import UserCFRecommender
+
+    algos = algorithms or ["popular", "itemcf", "usercf", "content", "hybrid"]
+    cfg = cfg or load_recommend_config()
+    train, test, cut_date = split_train_test(behaviors, test_ratio)
+
+    factories: dict[str, tuple[type, dict]] = {
+        "popular": (PopularRecommender, {}),
+        "itemcf": (ItemCFRecommender, {}),
+        "usercf": (UserCFRecommender, {"n_neighbors": cfg.n_neighbors}),
+        "content": (ContentRecommender, {}),
+        "hybrid": (HybridRecommender, {"hybrid_weights": cfg.hybrid_weights, "n_neighbors": cfg.n_neighbors}),
+    }
+
+    rows: list[dict] = []
+    details: dict[str, dict] = {}
+    for name in algos:
+        if name not in factories:
+            continue
+        cls, kwargs = factories[name]
+        model = cls(cfg, **kwargs).fit(train, items, orders, order_items, ref_date=cut_date)
+        met = evaluate_popular(model, train, test, items, k=k, max_users=max_users)
+        rows.append({"algorithm": name, **met})
+        details[name] = dict(met)
+
+    summary = pd.DataFrame(rows).sort_values("ndcg@k", ascending=False).reset_index(drop=True)
+    summary["rank"] = range(1, len(summary) + 1)
+    return summary, details

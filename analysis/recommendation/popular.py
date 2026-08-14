@@ -77,6 +77,11 @@ class PopularRecommender(BaseRecommender):
         self.ref_date = ref_date
         return self
 
+    def score_candidates(self, user_id: str, candidates: pd.Index) -> pd.Series:
+        """候选商品 Popular 分数（未过滤，供 Hybrid 融合）。"""
+        table = self.score_table
+        return table["score"].reindex(candidates).fillna(0.0)
+
     def _rank(self, user_id: str, candidates: pd.Index, top_k: int) -> pd.DataFrame:
         """取候选商品中热度分最高的 top_k 个。"""
         table = self.score_table

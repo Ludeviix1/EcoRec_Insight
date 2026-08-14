@@ -163,6 +163,17 @@ class ContentRecommender(BaseRecommender):
         score = score.replace([np.inf, -np.inf], 0.0).fillna(0.0)
         return score
 
+    def score_candidates(self, user_id: str, candidates: pd.Index) -> pd.Series:
+        """候选商品 Content 分数（未过滤，供 Hybrid 融合）。"""
+        seeds = self._user_seed.get(str(user_id), pd.Series(dtype=float))
+        if len(seeds) == 0 or len(candidates) == 0:
+            fall = self._fallback
+            if fall is None:
+                return pd.Series(0.0, index=candidates)
+            return fall.reindex(candidates).fillna(0.0)
+        seed_top = seeds.sort_values(ascending=False).head(self.cfg.sim_top)
+        return self._cosine_scores(seed_top, candidates).reindex(candidates).fillna(0.0)
+
     def _rank(self, user_id: str, candidates: pd.Index, top_k: int) -> pd.DataFrame:
         """对候选商品按内容相似打分并返回前 top_k 行。"""
         seeds = self._user_seed.get(str(user_id), pd.Series(dtype=float))
